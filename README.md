@@ -43,6 +43,28 @@ gnm remove v20.18.1
 gnm rm v20.18.1
 ```
 
+### Set Env
+
+#### Fish
+```bash
+gnm env fish
+```
+
+#### Zsh
+```bash
+gnm env zsh
+```
+
+#### Bash
+```bash
+gnm env bash
+```
+
+#### Nu Shell
+```bash
+gnm env nushell
+```
+
 ### Uninstall
 
 ```bash
