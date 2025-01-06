@@ -1,17 +1,44 @@
 package node
 
 import (
-	"fmt"
-	"slices"
+    "fmt"
+    "runtime"
+    "slices"
 
-	"github.com/bluespada/gnm/internal/downloader"
-	"github.com/bluespada/gnm/internal/filesystem"
-	"github.com/bytedance/sonic"
+    "github.com/bluespada/gnm/internal/downloader"
+    "github.com/bluespada/gnm/internal/filesystem"
+    "github.com/bytedance/sonic"
+    "github.com/schollz/progressbar/v3"
 )
 
 var dist = "https://nodejs.org/dist/index.json"
 
-var downloaded = "https://nodejs.org/dist/[version]/node-[version]-[platform]-[arch].tar.gz"
+var downloadUrl = "https://nodejs.org/dist/%s/node-%s-%s.tar.gz"
+
+var downloadStep = map[string]func(p any){
+    "[cyan][1/3][reset] Download...": func(version any){
+        var arch = GetArchitecture()
+        var installedPath = filesystem.GetDistFolder()
+        var targetPath = fmt.Sprintf("%s/%s", installedPath, version)
+        filesystem.ExistOrCreate(targetPath)
+        downloader.Download(
+            fmt.Sprintf(
+                downloadUrl,
+                version,
+                version,
+                arch,
+            ),
+            version.(string),
+            fmt.Sprintf("%s/%s.tar.gz", targetPath, version),
+        )
+    },
+    "[cyan][2/3][reset] Extracting...": func(p any){
+
+    },
+    "[cyan][3/3][reset] Finishing...": func(p any){
+
+    },
+}
 
 type nodeVersionInfo struct {
     Version  string   `json:"version"`
@@ -61,3 +88,51 @@ func ListRemote() {
     }
 }
 
+func ListInstalled() {
+    installed := filesystem.GetListInstalled()
+    for _, i := range installed {
+        fmt.Println(
+            "[-]",
+            i,
+            "(default)",
+        )
+    }
+}
+
+func DownloadAndInstall(version string) {
+    bar := progressbar.NewOptions(
+        len(downloadStep),
+        progressbar.OptionEnableColorCodes(true),
+        progressbar.OptionShowBytes(true),
+        progressbar.OptionSetWidth(15),
+        progressbar.OptionSetTheme(progressbar.Theme{
+            Saucer:        "[green]=[reset]",
+            SaucerHead:    "[green]>[reset]",
+            SaucerPadding: " ",
+            BarStart:      "[",
+            BarEnd:        "]",
+        }),
+    )
+
+    for n, i := range downloadStep {
+        bar.Describe(n)
+        bar.Add(1);
+        i(version)
+    }
+}
+
+func GetArchitecture() string {
+    if runtime.GOOS == "linux" {
+        var arch string
+        if runtime.GOARCH == "amd64" {
+            arch = "x64"
+        }
+        return fmt.Sprintf(
+            "%s-%s",
+            runtime.GOOS,
+            arch,
+        )
+    }
+    // no windows & mac support :v 
+    return "Undefined"
+}
